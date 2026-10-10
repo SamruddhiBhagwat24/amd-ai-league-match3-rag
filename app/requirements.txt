@@ -1,3 +1,9 @@
-# Keep this file free of torch dependencies. The ROCm base image already ships
-# the correct ROCm PyTorch build. Installing transformers with dependencies can
-# replace it with an incompatible CUDA build.
+numpy
+transformers==5.19.0
+tokenizers==0.23.2
+safetensors==0.8.0
+huggingface-hub==1.33.0
+accelerate==1.15.0
+pypdf
+python-docx
+openpyxl
