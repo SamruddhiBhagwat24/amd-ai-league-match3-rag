@@ -1,0 +1,3 @@
+# Keep this file free of torch dependencies. The ROCm base image already ships
+# the correct ROCm PyTorch build. Installing transformers with dependencies can
+# replace it with an incompatible CUDA build.
