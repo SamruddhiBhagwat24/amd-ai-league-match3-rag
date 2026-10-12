@@ -1,0 +1,81 @@
+name: Build and Publish Docker Image to GHCR
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Free runner disk space
+        run: |
+          echo "Freeing disk space on runner..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          docker system prune -af || true
+          df -h
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache & Download Model Weights
+        run: |
+          pip install --no-cache-dir huggingface_hub
+          python3 -c "
+          from huggingface_hub import snapshot_download
+          import os
+          os.makedirs('models/bge-small-en-v1.5', exist_ok=True)
+          os.makedirs('models/Qwen2.5-0.5B-Instruct', exist_ok=True)
+          print('Downloading BAAI/bge-small-en-v1.5...')
+          snapshot_download(repo_id='BAAI/bge-small-en-v1.5', local_dir='models/bge-small-en-v1.5')
+          print('Downloading Qwen/Qwen2.5-0.5B-Instruct...')
+          snapshot_download(repo_id='Qwen/Qwen2.5-0.5B-Instruct', local_dir='models/Qwen2.5-0.5B-Instruct')
+          "
+          echo "Model directory contents:"
+          ls -lh models/bge-small-en-v1.5/
+          ls -lh models/Qwen2.5-0.5B-Instruct/
+
+      - name: Lowercase repository name for Docker
+        run: |
+          echo "IMAGE_NAME_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}
+          tags: |
+            type=sha,format=short,prefix=sha-
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

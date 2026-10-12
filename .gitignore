@@ -5,4 +5,5 @@ models/
 output/
 corpus/
 *.tar.gz
-models/
+.mc3*
+*.bak

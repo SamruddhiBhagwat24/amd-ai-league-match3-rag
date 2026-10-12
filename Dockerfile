@@ -4,6 +4,7 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 # Do not let pip resolve a different PyTorch build.
@@ -31,4 +32,4 @@ ENV TRANSFORMERS_OFFLINE=1
 ENV TOKENIZERS_PARALLELISM=false
 ENV PYTHONUNBUFFERED=1
 
-CMD ["sleep", "infinity"]
+CMD ["python3", "/app/server.py"]
